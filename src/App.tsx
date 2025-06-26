@@ -18,7 +18,7 @@ const App: React.FC = () => {
 
   return (
     <div>
-      <h1>MusicXML Renderer</h1>
+      <h1>Scrolling Scores</h1>
       <input type="file" accept=".xml,.musicxml" onChange={handleFileChange} />
       {musicData && <MusicRenderer score={musicData} />}
     </div>

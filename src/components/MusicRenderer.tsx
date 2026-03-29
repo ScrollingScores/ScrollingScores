@@ -162,7 +162,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
   const svgGroupRef = useRef<SVGGElement>(null);
   const rafRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
-  const offsetAtPauseRef = useRef<number>(0); // how far we'd scrolled when paused
+  const offsetAtPauseRef = useRef<number>(-viewportWidth);
  
   // ─── Derived layout values (computed once per score change) ────────────────
  
@@ -213,10 +213,10 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
       const rawOffset = offsetAtPauseRef.current + elapsed * scrollSpeed;
  
       if (rawOffset >= totalScrollDistance) {
-        // Reached the end — reset to start
-        offsetAtPauseRef.current = 0;
+        // Before: offsetAtPauseRef.current = 0;
+        offsetAtPauseRef.current = -viewportWidth;
         startTimeRef.current = now;
-        applyOffset(0);
+        applyOffset(-viewportWidth);  // reset to off-screen right
       } else {
         applyOffset(rawOffset);
       }
@@ -257,9 +257,9 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
   // ─── Reset ─────────────────────────────────────────────────────────────────
  
   const handleReset = () => {
-    offsetAtPauseRef.current = 0;
+    offsetAtPauseRef.current = -viewportWidth;
     startTimeRef.current = null;
-    applyOffset(0);
+    applyOffset(-viewportWidth);
   };
  
   // ─── Layout helpers ────────────────────────────────────────────────────────

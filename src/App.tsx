@@ -1,3 +1,4 @@
+// App.tsx
 import React, { useState } from "react";
 import { parse } from "./parse";
 import { ScorePartwise } from "./type";

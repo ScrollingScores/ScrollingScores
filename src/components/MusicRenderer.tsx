@@ -1,5 +1,5 @@
 // components/MusicRenderer.tsx
-import React from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Pitch, ScorePartwise, Clef, ClefSign, Unpitched, Note } from "../type";
 import { NoteRenderer } from "./NoteRenderer";
 import { ChordSymbolRenderer } from "./ChordSymbolRenderer";
@@ -13,30 +13,30 @@ import {
 import { ClefRenderer } from "./ClefRenderer";
 import { KeySignatureRenderer } from "./KeySignatureRenderer";
 import { TimeSignatureRenderer } from "./TimeSignatureRenderer";
-
+ 
 interface Props {
   score: ScorePartwise;
 }
-
+ 
 interface ChordGroup {
   notes: Note[];
   x: number;
   duration: number;
   elementIndices: number[];
 }
-
+ 
 interface ChordNoteWithPosition {
   note: Note;
   y: number;
 }
-
+ 
 interface SlurInfo {
   startX: number;
   startY: number;
   placement?: "above" | "below";
   staff: number;
 }
-
+ 
 interface CompletedSlur {
   startX: number;
   startY: number;
@@ -45,10 +45,9 @@ interface CompletedSlur {
   placement?: "above" | "below";
   staff: number;
 }
-
-const DURATION_SPACING_UNIT = 40; // Pixels per duration unit
-
-// Get the vertical offset for a pitch based on the clef type
+ 
+const DURATION_SPACING_UNIT = 40;
+ 
 const getClefOffset = (
   clefSign: ClefSign,
   line: number = 2,
@@ -78,7 +77,6 @@ const getClefOffset = (
   if (octaveChange) {
     offset += octaveChange * 7 * (STAFF_LINE_SPACING / 2);
   }
-
   return offset;
 };
 
@@ -86,9 +84,7 @@ const scale = ["C", "D", "E", "F", "G", "A", "B"];
 const scaleIndexCache: Record<string, number> = {};
 
 const getStepIndex = (step: string): number => {
-  if (scaleIndexCache[step] !== undefined) {
-    return scaleIndexCache[step];
-  }
+  if (scaleIndexCache[step] !== undefined) return scaleIndexCache[step];
   const index = scale.indexOf(step);
   scaleIndexCache[step] = index;
   return index;
@@ -106,23 +102,15 @@ const pitchToY = (
   unpitched?: Unpitched
 ): number => {
   if (!pitch && !unpitched) return 0;
-
   const step = unpitched?.displayStep || pitch?.step;
   const octave = unpitched?.displayOctave ?? pitch?.octave;
-
   if (step === undefined || octave === undefined) return 0;
-
   const offsetFromMiddleC = getOffsetFromMiddleC(step, octave);
   const baseY = 50 - offsetFromMiddleC * (STAFF_LINE_SPACING / 2);
   const staffOffset = (staff - 1) * STAFF_SPACING;
   const clefOffset = activeClef
-    ? getClefOffset(
-        activeClef.sign,
-        activeClef.line,
-        activeClef.clefOctaveChange
-      )
+    ? getClefOffset(activeClef.sign, activeClef.line, activeClef.clefOctaveChange)
     : 0;
-
   return baseY + staffOffset + clefOffset + partYOffset;
 };
 
@@ -141,7 +129,7 @@ const getTablatureY = (note: Note, partYOffset: number): number => {
   const stringLineIndex = stringNum - 1;
   return staffYOffset + stringLineIndex * STAFF_LINE_SPACING;
 };
-
+ 
 interface MeasureElement {
   note?: Note;
 }
@@ -149,11 +137,10 @@ interface MeasureElement {
 const groupNotesIntoChords = (elements: MeasureElement[]): ChordGroup[] => {
   const chordGroups: ChordGroup[] = [];
   let currentChord: ChordGroup | null = null;
-
+ 
   elements.forEach((element, index) => {
     if (element.note) {
       const note = element.note;
-
       if (note.chord && currentChord) {
         currentChord.notes.push(note);
         currentChord.elementIndices.push(index);
@@ -246,23 +233,16 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
       let beats = firstMeasureAttrs?.time?.find((t) => t.beats)?.beats ?? 4;
       let beatType =
         firstMeasureAttrs?.time?.find((t) => t.beatType)?.beatType ?? 4;
-
-      const totalWidth = part.measures.reduce((sum, measure) => {
+ 
+      return part.measures.reduce((sum, measure) => {
         const attrs = measure.elements.find((e) => e.attributes)?.attributes;
-
         beats = attrs?.time?.find((t) => t.beats)?.beats ?? beats;
         beatType = attrs?.time?.find((t) => t.beatType)?.beatType ?? beatType;
-
-        const measureWidth =
-          (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType;
-
-        return sum + measureWidth;
+        return sum + (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType;
       }, 0);
-
-      return totalWidth;
     })
   );
-
+ 
   const svgWidth = maxWidth + 125;
 
   const getPartYOffset = (partIndex: number): number => {
@@ -284,7 +264,9 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
   const lastPartStaves = lastPartAttrs?.staves ?? 1;
   const svgHeight =
     getPartYOffset(lastPartIndex) + lastPartStaves * STAFF_SPACING + 60;
-
+ 
+  // ─── Render ────────────────────────────────────────────────────────────────
+ 
   return (
     <svg width={svgWidth} height={svgHeight}>
       {score.parts.map((part, partIndex) => {
@@ -415,7 +397,6 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                           (note.stem === "up" ? "below" : "above"),
                         staff: staffNum,
                       });
-                      activeSlurs.delete(slurKey);
                     }
                   }
                 });
@@ -517,13 +498,12 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                       const staffYOffset =
                         partYOffset + (staff - 1) * STAFF_SPACING + 50;
                       elements.push(
-                        <TimeSignatureRenderer
-                          key={`time-${partIndex}-${measureIndex}-${elementIndex}-${timeIndex}-${staff}`}
-                          beats={time.beats}
-                          beatType={time.beatType}
-                          x={currentX - 30}
-                          yOffset={staffYOffset - 80}
-                        />
+                        renderMeasureLine(
+                          125 - DURATION_SPACING_UNIT / 2,
+                          partYOffset,
+                          staves,
+                          staffDetails
+                        )
                       );
                     }
                   });
@@ -714,8 +694,8 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
               />
             ))}
           </g>
-        );
-      })}
-    </svg>
+        </svg>
+      </div>
+    </div>
   );
 };

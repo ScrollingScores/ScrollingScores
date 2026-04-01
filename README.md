@@ -1,4 +1,4 @@
-# MusicXML Renderer
+# Scrolling Scores
 
 A modern React-based renderer for MusicXML files, built with TypeScript and Vite. This application allows you to visualize and render musical scores from MusicXML files directly in the browser.
 
@@ -21,8 +21,8 @@ A modern React-based renderer for MusicXML files, built with TypeScript and Vite
 
 ```bash
 # Clone the repository
-git clone https://github.com/skoliveira/MusicXML-Renderer.git
-cd MusicXML-Renderer
+git https://github.com/ScrollingScores/ScrollingScores.git
+cd ScrollingScores
 
 # Install dependencies
 npm install

@@ -10,6 +10,7 @@ import { AccidentalRenderer } from "./AccidentalRenderer";
 import { LedgerLines } from "./LedgerLines";
 import { TablatureRenderer } from "./TablatureRenderer";
 import { TieRenderer } from "./TieRenderer";
+import { LyricsRenderer } from "./LyricsRenderer";
 
 interface NoteRendererProps {
   note: Note;
@@ -19,10 +20,14 @@ interface NoteRendererProps {
   partYOffset?: number;
   isChord?: boolean;
   isFirstInChord?: boolean;
-  chordNotes?: Array<{ note: Note; y: number }>; // All notes in the chord with their Y positions
+  chordNotes?: Array<{ note: Note; y: number }>;
   activeClefSign?: ClefSign;
-  tieEnd?: { x: number; y: number; duration: number }; // Add duration for tie start note
-  tieToNext?: { x: number; y: number; duration: number }; // Add duration for tie start note
+  tieEnd?: { x: number; y: number; duration: number };
+  tieToNext?: { x: number; y: number; duration: number };
+  staffBottomY?: number;
+  /** Distance (px) from this note's x to the next note that carries a lyric
+   *  syllable. Used to center hyphens correctly across silent/empty notes. */
+  lyricsHyphenSpan?: number;
   onSlurEvent?: (
     type: "start" | "stop",
     x: number,
@@ -44,6 +49,8 @@ export const NoteRenderer: React.FC<NoteRendererProps> = ({
   activeClefSign,
   tieEnd,
   tieToNext,
+  staffBottomY,
+  lyricsHyphenSpan,
   onSlurEvent,
 }) => {
   const needsFlag =
@@ -76,7 +83,6 @@ export const NoteRenderer: React.FC<NoteRendererProps> = ({
     ].includes(note.type);
   const isUpwardStem = note.stem === "up";
 
-  // Add this effect to handle slur events
   React.useEffect(() => {
     if (note.notations && onSlurEvent) {
       note.notations.forEach((notation) => {
@@ -91,7 +97,6 @@ export const NoteRenderer: React.FC<NoteRendererProps> = ({
     }
   }, [note.notations, onSlurEvent, x, y]);
 
-  // Handle tablature notation
   if (activeClefSign === "TAB") {
     return (
       <TablatureRenderer
@@ -102,6 +107,8 @@ export const NoteRenderer: React.FC<NoteRendererProps> = ({
         activeClefSign={activeClefSign}
         tieEnd={tieEnd}
         tieToNext={tieToNext}
+        lyrics={note.lyrics}
+        lyricsHyphenSpan={lyricsHyphenSpan}
       />
     );
   }
@@ -120,28 +127,29 @@ export const NoteRenderer: React.FC<NoteRendererProps> = ({
     );
   }
 
-  // Calculate chord stem positions if this is a chord
   let stemStartY = y;
   let stemEndY = y;
   let stemLength = y;
 
   if (needsStem && isChord && chordNotes.length > 1 && isFirstInChord) {
-    // Find the highest and lowest notes in the chord
     const yPositions = chordNotes.map((cn) => cn.y);
-    const highestY = Math.min(...yPositions); // Lowest Y value (highest on staff)
-    const lowestY = Math.max(...yPositions); // Highest Y value (lowest on staff)
+    const highestY = Math.min(...yPositions);
+    const lowestY = Math.max(...yPositions);
 
     if (isUpwardStem) {
-      // Stem starts at the lowest note and extends upward from the highest note
       stemStartY = lowestY;
-      stemEndY = highestY - 35; // Standard stem length above the notehead
+      stemEndY = highestY - 35;
     } else {
-      // Stem starts at the highest note and extends downward from the lowest note
       stemStartY = highestY;
-      stemEndY = lowestY + 35; // Standard stem length below the notehead
+      stemEndY = lowestY + 35;
     }
     stemLength = lowestY - highestY + 35;
   }
+
+  // Lyrics are pinned to a fixed distance below the bottom staff line,
+  // regardless of the note's pitch. Falls back to y only if staffBottomY
+  // was not provided (should not happen in normal usage).
+  const lyricsY = (staffBottomY ?? y) + 22;
 
   return (
     <>
@@ -161,11 +169,9 @@ export const NoteRenderer: React.FC<NoteRendererProps> = ({
         y={y}
         elementKey={elementKey}
       />
-      {/* Only render stem and flag for single notes or first note in chord */}
       {(!isChord || isFirstInChord) && (
         <>
           {needsStem && isChord && chordNotes.length > 1 ? (
-            // Custom stem for chords
             <StemRenderer
               notehead={note.notehead}
               stem={note.stem}
@@ -175,7 +181,6 @@ export const NoteRenderer: React.FC<NoteRendererProps> = ({
               stemLength={stemLength}
             />
           ) : (
-            // Standard stem for single notes
             <StemRenderer
               notehead={note.notehead}
               stem={note.stem}
@@ -203,7 +208,6 @@ export const NoteRenderer: React.FC<NoteRendererProps> = ({
       )}
       {note.dots && <DotsRenderer x={x} y={y} dots={note.dots} />}
 
-      {/* Render ties - now using the initial note's duration for curve height */}
       {tieEnd && (
         <TieRenderer
           startX={tieEnd.x + 6}
@@ -224,6 +228,17 @@ export const NoteRenderer: React.FC<NoteRendererProps> = ({
           thickness={6}
         />
       )}
+
+      {(!isChord || isFirstInChord) &&
+        note.lyrics &&
+        note.lyrics.length > 0 && (
+          <LyricsRenderer
+            lyrics={note.lyrics}
+            x={x}
+            y={lyricsY}
+            hyphenSpan={lyricsHyphenSpan}
+          />
+        )}
     </>
   );
 };

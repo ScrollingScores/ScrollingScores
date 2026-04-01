@@ -6,6 +6,7 @@ import { RestRenderer } from "./RestRenderer";
 import { DotsRenderer } from "./DotsRenderer";
 import { Flag } from "./Flag";
 import { TieRenderer } from "./TieRenderer";
+import { LyricsRenderer } from "./LyricsRenderer";
 
 interface TablatureRendererProps {
   note: Note;
@@ -15,6 +16,8 @@ interface TablatureRendererProps {
   activeClefSign?: ClefSign;
   tieEnd?: { x: number; y: number; duration: number };
   tieToNext?: { x: number; y: number; duration: number };
+  lyrics?: Note["lyrics"];
+  lyricsHyphenSpan?: number;
 }
 
 export const TablatureRenderer: React.FC<TablatureRendererProps> = ({
@@ -25,6 +28,8 @@ export const TablatureRenderer: React.FC<TablatureRendererProps> = ({
   activeClefSign,
   tieEnd,
   tieToNext,
+  lyrics,
+  lyricsHyphenSpan,
 }) => {
   // Only render tablature for TAB clef
   if (activeClefSign !== "TAB") {
@@ -106,6 +111,8 @@ export const TablatureRenderer: React.FC<TablatureRendererProps> = ({
   // Calculate tie positions - ties should be at the string level
   const tieYOffset = 8; // Offset from the string line for tie positioning
 
+  const lyricsY = lowestStringY + 50;
+
   return (
     <g>
       <circle cx={x} cy={stringY} r="5" fill={`#E0E0E0`} stroke="none" />
@@ -165,6 +172,16 @@ export const TablatureRenderer: React.FC<TablatureRendererProps> = ({
           thickness={7}
         />
       )}
+
+      {lyrics && lyrics.length > 0 && (
+        <LyricsRenderer
+          lyrics={lyrics}
+          x={x}
+          y={lyricsY}
+          hyphenSpan={lyricsHyphenSpan}
+        />
+      )}
+
     </g>
   );
 };

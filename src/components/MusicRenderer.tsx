@@ -46,7 +46,7 @@ interface CompletedSlur {
   staff: number;
 }
 
-const DURATION_SPACING_UNIT = 40;
+const DEFAULT_DURATION_SPACING_UNIT = 40;
 
 const getClefOffset = (
   clefSign: ClefSign,
@@ -214,6 +214,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(60);
   const [viewportWidth, setViewportWidth] = useState(800);
+  const [durationSpacingUnit, setDurationSpacingUnit] = useState(DEFAULT_DURATION_SPACING_UNIT);
 
   // Refs for animation — mutated directly, no re-renders
   const svgGroupRef = useRef<SVGGElement>(null);
@@ -237,7 +238,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
         const attrs = measure.elements.find((e) => e.attributes)?.attributes;
         beats = attrs?.time?.find((t) => t.beats)?.beats ?? beats;
         beatType = attrs?.time?.find((t) => t.beatType)?.beatType ?? beatType;
-        return sum + (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType;
+        return sum + (4 * beats * durationSpacingUnit * divisions) / beatType;
       }, 0);
     })
   );
@@ -394,6 +395,20 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
           <span>{viewportWidth}px</span>
         </label>
 
+        <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          Note Spacing:
+          <input
+            type="range"
+            min="10"
+            max="100"
+            value={durationSpacingUnit}
+            onChange={(e) => setDurationSpacingUnit(Number(e.target.value))}
+            style={{ width: "150px" }}
+            disabled={isPlaying}
+          />
+          <span>{durationSpacingUnit}px</span>
+        </label>
+
         <button
           onClick={handleReset}
           style={{
@@ -472,7 +487,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                     attrs?.time?.find((t) => t.beatType)?.beatType ?? scanBeatType;
 
                   const measureWidth =
-                    (4 * scanBeats * DURATION_SPACING_UNIT * divisions) /
+                    (4 * scanBeats * durationSpacingUnit * divisions) /
                     scanBeatType;
 
                   let noteX = scanX;
@@ -487,13 +502,13 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                         if (!element.note.chord) {
                           noteX += noteSpacing;
                         }
-                        noteSpacing = cg.duration * DURATION_SPACING_UNIT;
+                        noteSpacing = cg.duration * durationSpacingUnit;
                         allChordGroupEntries.push({ group: cg, x: noteX });
                         cgIdx++;
                       }
                     }
                     if (element.backup) {
-                      noteX -= element.backup.duration * DURATION_SPACING_UNIT;
+                      noteX -= element.backup.duration * durationSpacingUnit;
                     }
                   });
 
@@ -594,7 +609,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                       beatType;
 
                     const measureWidth =
-                      (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType;
+                      (4 * beats * durationSpacingUnit * divisions) / beatType;
                     const measureX = totalWidth;
                     let currentX = measureX;
                     let spacing = 0;
@@ -607,7 +622,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                     if (measureIndex === 0) {
                       elements.push(
                         renderMeasureLine(
-                          125 - DURATION_SPACING_UNIT / 2,
+                          125 - durationSpacingUnit / 2,
                           partYOffset,
                           staves,
                           staffDetails
@@ -679,7 +694,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                         const chordOffset = element.harmony.offset
                           ? (element.harmony.offset *
                             beats *
-                            DURATION_SPACING_UNIT *
+                            durationSpacingUnit *
                             divisions) /
                           beatType
                           : 0;
@@ -706,7 +721,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                           if (!element.note.chord) {
                             currentX += spacing;
                           }
-                          spacing = chordGroup.duration * DURATION_SPACING_UNIT;
+                          spacing = chordGroup.duration * durationSpacingUnit;
 
                           // Look up the pre-computed hyphen span for this chord group
                           const lyricsHyphenSpan = hyphenSpanMap.get(globalCgIdx);
@@ -798,15 +813,15 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                       }
 
                       if (element.backup) {
-                        currentX -= element.backup.duration * DURATION_SPACING_UNIT;
+                        currentX -= element.backup.duration * durationSpacingUnit;
                       }
                     });
 
                     elements.push(
                       renderMeasureLine(
                         measureX +
-                        (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType -
-                        DURATION_SPACING_UNIT / 2,
+                        (4 * beats * durationSpacingUnit * divisions) / beatType -
+                        durationSpacingUnit / 2,
                         partYOffset,
                         staves,
                         staffDetails
@@ -818,9 +833,9 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                         <g key={`final-barline-${partIndex}-${measureIndex}`}>
                           {renderMeasureLine(
                             measureX +
-                            (4 * beats * DURATION_SPACING_UNIT * divisions) /
+                            (4 * beats * durationSpacingUnit * divisions) /
                             beatType -
-                            DURATION_SPACING_UNIT / 2 +
+                            durationSpacingUnit / 2 +
                             1,
                             partYOffset,
                             staves,
@@ -828,9 +843,9 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                           )}
                           {renderMeasureLine(
                             measureX +
-                            (4 * beats * DURATION_SPACING_UNIT * divisions) /
+                            (4 * beats * durationSpacingUnit * divisions) /
                             beatType -
-                            DURATION_SPACING_UNIT / 2 -
+                            durationSpacingUnit / 2 -
                             3,
                             partYOffset,
                             staves,

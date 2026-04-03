@@ -373,12 +373,13 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
             type="range"
             min="10"
             max="300"
+            step="0.5"
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
             style={{ width: "150px" }}
             disabled={isPlaying}
           />
-          <span>{duration}s</span>
+          <span>{duration.toFixed(1)}s</span>
         </label>
 
         <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>

@@ -245,7 +245,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
           attrs?.time?.find((t) => t.beatType)?.beatType ?? beatType;
 
         const measureWidth =
-          (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType;
+          (4 * beats * durationSpacingUnit * divisions) / beatType;
 
         const measureX = totalWidth;
 
@@ -254,7 +254,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
           const finalBarlineX =
             measureX +
             measureWidth -
-            DURATION_SPACING_UNIT / 2 +
+            durationSpacingUnit / 2 +
             1; // mesma lógica do render (linha mais à direita)
 
           totalWidth = finalBarlineX;
@@ -858,9 +858,9 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                         <g key={`final-barline-${partIndex}-${measureIndex}`}>
                           {renderMeasureLine(
                             measureX +
-                            (4 * beats * DURATION_SPACING_UNIT * divisions) /
+                            (4 * beats * durationSpacingUnit * divisions) /
                             beatType -
-                            DURATION_SPACING_UNIT / 2 +
+                            durationSpacingUnit / 2 +
                             0,
                             partYOffset,
                             staves,
@@ -869,9 +869,9 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                           )}
                           {renderMeasureLine(
                             measureX +
-                            (4 * beats * DURATION_SPACING_UNIT * divisions) /
+                            (4 * beats * durationSpacingUnit * divisions) /
                             beatType -
-                            DURATION_SPACING_UNIT / 2 -
+                            durationSpacingUnit / 2 -
                             8,
                             partYOffset,
                             staves,

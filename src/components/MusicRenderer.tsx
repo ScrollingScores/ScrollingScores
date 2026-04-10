@@ -229,21 +229,45 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
       const firstMeasureAttrs = part.measures[0]?.elements.find(
         (e) => e.attributes
       )?.attributes;
+
       const divisions = firstMeasureAttrs?.divisions ?? 1;
       let beats = firstMeasureAttrs?.time?.find((t) => t.beats)?.beats ?? 4;
       let beatType =
         firstMeasureAttrs?.time?.find((t) => t.beatType)?.beatType ?? 4;
 
-      return part.measures.reduce((sum, measure) => {
+      let totalWidth = 125; // começa igual ao rendering real
+
+      part.measures.forEach((measure, measureIndex) => {
         const attrs = measure.elements.find((e) => e.attributes)?.attributes;
+
         beats = attrs?.time?.find((t) => t.beats)?.beats ?? beats;
-        beatType = attrs?.time?.find((t) => t.beatType)?.beatType ?? beatType;
-        return sum + (4 * beats * durationSpacingUnit * divisions) / beatType;
-      }, 0);
+        beatType =
+          attrs?.time?.find((t) => t.beatType)?.beatType ?? beatType;
+
+        const measureWidth =
+          (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType;
+
+        const measureX = totalWidth;
+
+        // Se for o último compasso, calcula posição da barra final
+        if (measureIndex === part.measures.length - 1) {
+          const finalBarlineX =
+            measureX +
+            measureWidth -
+            DURATION_SPACING_UNIT / 2 +
+            1; // mesma lógica do render (linha mais à direita)
+
+          totalWidth = finalBarlineX;
+        } else {
+          totalWidth += measureWidth;
+        }
+      });
+
+      return totalWidth;
     })
   );
 
-  const svgWidth = maxWidth + 125;
+  const svgWidth = maxWidth;
   // Total travel = score scrolls completely off the left edge of the viewport
   const totalScrollDistance = svgWidth + viewportWidth;
   // pixels per second — recalculated whenever duration/viewport/score changes
@@ -834,20 +858,21 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                         <g key={`final-barline-${partIndex}-${measureIndex}`}>
                           {renderMeasureLine(
                             measureX +
-                            (4 * beats * durationSpacingUnit * divisions) /
+                            (4 * beats * DURATION_SPACING_UNIT * divisions) /
                             beatType -
-                            durationSpacingUnit / 2 +
-                            1,
+                            DURATION_SPACING_UNIT / 2 +
+                            0,
                             partYOffset,
                             staves,
-                            staffDetails
+                            staffDetails,
+                            7
                           )}
                           {renderMeasureLine(
                             measureX +
-                            (4 * beats * durationSpacingUnit * divisions) /
+                            (4 * beats * DURATION_SPACING_UNIT * divisions) /
                             beatType -
-                            durationSpacingUnit / 2 -
-                            3,
+                            DURATION_SPACING_UNIT / 2 -
+                            8,
                             partYOffset,
                             staves,
                             staffDetails

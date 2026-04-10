@@ -229,7 +229,6 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
       const firstMeasureAttrs = part.measures[0]?.elements.find(
         (e) => e.attributes
       )?.attributes;
-
       const divisions = firstMeasureAttrs?.divisions ?? 1;
       let beats = firstMeasureAttrs?.time?.find((t) => t.beats)?.beats ?? 4;
       let beatType =
@@ -238,33 +237,90 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
       return part.measures.reduce((sum, measure) => {
         const attrs = measure.elements.find((e) => e.attributes)?.attributes;
         beats = attrs?.time?.find((t) => t.beats)?.beats ?? beats;
-        beatType =
-          attrs?.time?.find((t) => t.beatType)?.beatType ?? beatType;
-
-        const measureWidth =
-          (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType;
-
-        const measureX = totalWidth;
-
-        // Se for o último compasso, calcula posição da barra final
-        if (measureIndex === part.measures.length - 1) {
-          const finalBarlineX =
-            measureX +
-            measureWidth -
-            DURATION_SPACING_UNIT / 2 +
-            1; // mesma lógica do render (linha mais à direita)
-
-          totalWidth = finalBarlineX;
-        } else {
-          totalWidth += measureWidth;
-        }
-      });
-
-      return totalWidth;
+        beatType = attrs?.time?.find((t) => t.beatType)?.beatType ?? beatType;
+        return sum + (4 * beats * durationSpacingUnit * divisions) / beatType;
+      }, 0);
     })
   );
 
-  const svgWidth = maxWidth;
+  const svgWidth = maxWidth + 125;
+  // Total travel = score scrolls completely off the left edge of the viewport
+  const totalScrollDistance = svgWidth + viewportWidth;
+  // pixels per second — recalculated whenever duration/viewport/score changes
+  const scrollSpeed = totalScrollDistance / duration;
+
+  // ─── Animation loop ────────────────────────────────────────────────────────
+  // We write the translate directly onto the <g> so React never re-renders.
+
+  const applyOffset = useCallback((offset: number) => {
+    if (svgGroupRef.current) {
+      svgGroupRef.current.setAttribute(
+        "transform",
+        `translate(${-offset}, 0)`
+      );
+    }
+  }, []);
+
+  const tick = useCallback(
+    (now: number) => {
+      if (startTimeRef.current === null) {
+        startTimeRef.current = now;
+      }
+
+      const elapsed = (now - startTimeRef.current) / 1000; // seconds
+      const rawOffset = offsetAtPauseRef.current + elapsed * scrollSpeed;
+
+      if (rawOffset >= totalScrollDistance) {
+        // Before: offsetAtPauseRef.current = 0;
+        offsetAtPauseRef.current = -viewportWidth;
+        startTimeRef.current = now;
+        applyOffset(-viewportWidth);  // reset to off-screen right
+      } else {
+        applyOffset(rawOffset);
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    },
+    [scrollSpeed, totalScrollDistance, applyOffset]
+  );
+
+  useEffect(() => {
+    if (isPlaying) {
+      startTimeRef.current = null; // let tick() capture the first frame timestamp
+      rafRef.current = requestAnimationFrame(tick);
+    } else {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      // Snapshot current visual position so we can resume from here
+      if (svgGroupRef.current && startTimeRef.current !== null) {
+        const transform = svgGroupRef.current.getAttribute("transform") ?? "";
+        const match = transform.match(/translate\(([-\d.]+)/);
+        if (match) {
+          offsetAtPauseRef.current = Math.abs(parseFloat(match[1]));
+        }
+      }
+      startTimeRef.current = null;
+    }
+
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [isPlaying, tick]);
+
+  // ─── Reset ─────────────────────────────────────────────────────────────────
+
+  const handleReset = () => {
+    offsetAtPauseRef.current = -viewportWidth;
+    startTimeRef.current = null;
+    applyOffset(-viewportWidth);
+  };
+
+  // ─── Layout helpers ────────────────────────────────────────────────────────
 
   const getPartYOffset = (partIndex: number): number => {
     if (partIndex === 0) return 60;
@@ -798,56 +854,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                           )}
                         </g>
                       );
-                    });
-
-                    chordGroupIndex++;
-                    globalCgIdx++;
-                  }
-                }
-
-                if (element.backup) {
-                  currentX -= element.backup.duration * DURATION_SPACING_UNIT;
-                }
-              });
-
-              elements.push(
-                renderMeasureLine(
-                  measureX +
-                  (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType -
-                  DURATION_SPACING_UNIT / 2,
-                  partYOffset,
-                  staves,
-                  staffDetails
-                )
-              );
-
-              if (measureIndex === part.measures.length - 1) {
-                elements.push(
-                  <g key={`final-barline-${partIndex}-${measureIndex}`}>
-                    {renderMeasureLine(
-                      measureX +
-                      (4 * beats * DURATION_SPACING_UNIT * divisions) /
-                      beatType -
-                      DURATION_SPACING_UNIT / 2 +
-                      0,
-                      partYOffset,
-                      staves,
-                      staffDetails,
-                      7
-                    )}
-                    {renderMeasureLine(
-                      measureX +
-                      (4 * beats * DURATION_SPACING_UNIT * divisions) /
-                      beatType -
-                      DURATION_SPACING_UNIT / 2 -
-                      8,
-                      partYOffset,
-                      staves,
-                      staffDetails
-                    )}
-                  </g>
-                );
-              }
+                    }
 
                     totalWidth += measureWidth;
 

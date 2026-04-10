@@ -229,6 +229,7 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
       const firstMeasureAttrs = part.measures[0]?.elements.find(
         (e) => e.attributes
       )?.attributes;
+
       const divisions = firstMeasureAttrs?.divisions ?? 1;
       let beats = firstMeasureAttrs?.time?.find((t) => t.beats)?.beats ?? 4;
       let beatType =
@@ -854,7 +855,56 @@ export const MusicRenderer: React.FC<Props> = ({ score }) => {
                           )}
                         </g>
                       );
-                    }
+                    });
+
+                    chordGroupIndex++;
+                    globalCgIdx++;
+                  }
+                }
+
+                if (element.backup) {
+                  currentX -= element.backup.duration * DURATION_SPACING_UNIT;
+                }
+              });
+
+              elements.push(
+                renderMeasureLine(
+                  measureX +
+                  (4 * beats * DURATION_SPACING_UNIT * divisions) / beatType -
+                  DURATION_SPACING_UNIT / 2,
+                  partYOffset,
+                  staves,
+                  staffDetails
+                )
+              );
+
+              if (measureIndex === part.measures.length - 1) {
+                elements.push(
+                  <g key={`final-barline-${partIndex}-${measureIndex}`}>
+                    {renderMeasureLine(
+                      measureX +
+                      (4 * beats * DURATION_SPACING_UNIT * divisions) /
+                      beatType -
+                      DURATION_SPACING_UNIT / 2 +
+                      0,
+                      partYOffset,
+                      staves,
+                      staffDetails,
+                      7
+                    )}
+                    {renderMeasureLine(
+                      measureX +
+                      (4 * beats * DURATION_SPACING_UNIT * divisions) /
+                      beatType -
+                      DURATION_SPACING_UNIT / 2 -
+                      8,
+                      partYOffset,
+                      staves,
+                      staffDetails
+                    )}
+                  </g>
+                );
+              }
 
                     totalWidth += measureWidth;
 
